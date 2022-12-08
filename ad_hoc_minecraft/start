@@ -1,0 +1,65 @@
+#!/bin/bash
+java --version > /dev/null 2>&1 || { echo -e "\e[1mjava \e[31mis not installed. Install it manually."; exit 1; }
+cd "$(dirname "$0")"
+
+### Write eula.txt (if needed)
+if [ ! -f eula.txt ]; then
+echo -e "\e[1;35mWriting \e[0;1meula.txt\e[0m"
+echo eula=true > eula.txt
+fi
+
+### Write server.properties (if needed)
+if [ ! -f server.properties ]; then
+echo -e "\e[1;35mWriting \e[0;1mserver.properties\e[0m"
+cat > server.properties <<- __END__
+spawn-protection=0
+difficulty=hard
+server-port=25565
+white-list=true
+max-players=3
+motd=Ad Hoc Minecraft @ Nimbus.Fi
+level-seed=
+__END__
+fi
+
+### Whitelist players (if needed)
+if [ ! -f whitelist.json ]; then
+echo -e "\e[1;35mWriting \e[0;1mwhitelist.json\e[0m"
+cat > whitelist.json <<- __END__
+[
+  {
+    "uuid": "d905d7e6-a4ef-425c-8c50-bb7debcc185a",
+    "name": "Amauran"
+  },
+  {
+    "uuid": "9157b954-7924-41b7-9f7e-b1e809dba513",
+    "name": "Araneu"
+  },
+  {
+    "uuid": "71170308-e81e-466b-b409-76ad6cb32386",
+    "name": "Raqon"
+  }
+]
+__END__
+fi
+
+### Download server.jar (if needed)
+if [ ! -f server.jar ]; then
+jq --version > /dev/null 2>&1 || { echo -e "\e[1mjq \e[31mnot installed. Install it with:\e[0m sudo apt install jq"; exit 1; }
+curl --version > /dev/null 2>&1 || { echo -e "\e[1mcurl \e[31mnot installed. Install it with:\e[0m sudo apt install curl"; exit 1; }
+echo -e "\e[1;35mDownloading server...\e[0m"
+TEMP_FILE=$( mktemp version_manifest_XXXXXXXX.json )
+curl --no-progress-meter https://launchermeta.mojang.com/mc/game/version_manifest.json -o "${TEMP_FILE}" || exit 2
+LATEST_RELEASE=$( jq -r '.latest.release' "${TEMP_FILE}" )
+echo -en "\e[1;35mLatest release: \e[0m"
+jq ".versions[] | select(.type==\"release\" and .id==\"${LATEST_RELEASE}\")" "${TEMP_FILE}"
+LATEST_URL=$( jq -r ".versions[] | select(.type==\"release\" and .id==\"${LATEST_RELEASE}\") | .url" "${TEMP_FILE}" )
+SERVER_DOWNLOAD_URL=$( curl --no-progress-meter "${LATEST_URL}" | jq -r .downloads.server.url )
+echo -e "\e[1;35mServer download url: \e[0;1m${SERVER_DOWNLOAD_URL}\e[0m"
+curl -O "${SERVER_DOWNLOAD_URL}" || exit 2
+rm "${TEMP_FILE}"
+fi
+
+### Launch server.jar
+echo -e "\e[1;35mLaunching server...\e[0m"
+java -Xms1G -Xmx2G -jar server.jar
