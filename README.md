@@ -6,3 +6,5 @@ A simple bash script for downloading and launching an ad hoc Minecraft server.
 3. Run the `start` script in an empty directory.
 
 (You may want to edit the `server.properties` and `whitelist.json` sections of the script first.)
+
+To update the server just delete the old 
